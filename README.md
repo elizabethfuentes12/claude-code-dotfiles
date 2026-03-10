@@ -45,9 +45,10 @@ This dotfiles repo solves that with a simple, no-dependency approach: treat `~/.
 
 | Ignored | Why |
 |---------|-----|
-| `cache/`, `backups/` | Local ephemeral data, irrelevant on other machines |
+| `cache/`, `backups/`, `file-history/` | Local ephemeral data, irrelevant on other machines |
 | `history.jsonl` | Conversation history — private and machine-specific |
-| `projects/` | Project-level context, not global |
+| `projects/`, `shell-snapshots/`, `paste-cache/` | Machine-specific runtime data |
+| `plugins/`, `plans/`, `session-env/` | Local runtime state |
 | `*.log`, `sessions/`, `transcripts/` | Temporary files |
 | `*.key`, `*.pem`, `credentials.json`, `*.token` | **Never version secrets** |
 
@@ -91,7 +92,7 @@ This is the most important step. Use an explicit allowlist so only the files you
 
 ```bash
 cat > ~/.claude/.gitignore << 'EOF'
-# 🔒 Never version these
+# Never version these
 .api_key
 credentials.json
 secrets/
@@ -100,15 +101,25 @@ secrets/
 auth.json
 *.token
 
-# 🗑️ Temporary / cache files
-.cache/
+# Claude Code runtime / cache (machine-specific, not portable)
+cache/
+backups/
+file-history/
+history.jsonl
+paste-cache/
+plugins/
+projects/
+shell-snapshots/
+plans/
+session-env/
 transcripts/
 sessions/
 *.log
 clipboard/
 project_clones/
+.cache/
 
-# ✅ Always version these (explicit allowlist)
+# Always version these (explicit allowlist)
 !CLAUDE.md
 !settings.json
 !commands/
