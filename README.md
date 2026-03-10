@@ -243,6 +243,103 @@ Now `/summarize-pr` is available in every session, on every machine.
 
 ---
 
+## Optional — Sync Commands to Kiro (macOS only)
+
+> This section is optional and only applies if you use [Kiro](https://kiro.dev), AWS's AI IDE for macOS.
+
+If you use both Claude Code and Kiro, you can reuse the same slash commands in both tools. Claude Code commands live in `~/.claude/commands/` as `.md` files with a Claude-specific YAML frontmatter. Kiro reads steering files from `~/.kiro/steering/` with a different frontmatter format.
+
+The script below converts your Claude commands to Kiro steering files automatically — stripping Claude's frontmatter and adding Kiro's `inclusion: manual` header.
+
+### Setup
+
+**Step 1 — Save the script**
+
+```bash
+mkdir -p ~/.claude/hooks
+cat > ~/.claude/hooks/sync-to-kiro.sh << 'EOF'
+#!/bin/bash
+# Syncs ~/.claude/commands/*.md → ~/.kiro/steering/
+# Strips Claude frontmatter (name/description) and adds Kiro's inclusion: manual
+
+CLAUDE_COMMANDS="$HOME/.claude/commands"
+KIRO_STEERING="$HOME/.kiro/steering"
+
+mkdir -p "$KIRO_STEERING"
+
+synced=0
+deleted=0
+
+# Sync new and modified files
+for src in "$CLAUDE_COMMANDS"/*.md; do
+    [ -f "$src" ] || continue
+
+    filename=$(basename "$src")
+    dst="$KIRO_STEERING/$filename"
+
+    # Extract content after Claude's frontmatter (after the second ---)
+    content=$(awk 'BEGIN{count=0} /^---/{count++; next} count>=2{print}' "$src")
+
+    new_content="---
+inclusion: manual
+---
+$content"
+
+    # Only write if content changed
+    if [ ! -f "$dst" ] || [ "$new_content" != "$(cat "$dst")" ]; then
+        printf '%s\n' "$new_content" > "$dst"
+        echo "[sync-to-kiro] Updated: $filename"
+        ((synced++))
+    fi
+done
+
+# Remove steering files that no longer have a matching command
+for dst in "$KIRO_STEERING"/*.md; do
+    [ -f "$dst" ] || continue
+    filename=$(basename "$dst")
+    if [ ! -f "$CLAUDE_COMMANDS/$filename" ]; then
+        rm "$dst"
+        echo "[sync-to-kiro] Removed: $filename"
+        ((deleted++))
+    fi
+done
+
+if [ "$synced" -eq 0 ] && [ "$deleted" -eq 0 ]; then
+    echo "[sync-to-kiro] Nothing to sync."
+fi
+EOF
+chmod +x ~/.claude/hooks/sync-to-kiro.sh
+```
+
+**Step 2 — Run it manually or hook it to your workflow**
+
+```bash
+bash ~/.claude/hooks/sync-to-kiro.sh
+```
+
+Or add it to your auto-sync shell function so it runs every time you exit Claude:
+
+```bash
+claude() {
+  git -C ~/.claude pull origin main --quiet
+  command claude "$@"
+  bash ~/.claude/hooks/sync-to-kiro.sh
+  # ... rest of your sync logic
+}
+```
+
+### How it works
+
+- Reads every `.md` file in `~/.claude/commands/`
+- Strips the Claude YAML frontmatter block (`name`, `description`)
+- Writes the file to `~/.kiro/steering/` with `inclusion: manual` as the new header
+- Deletes any Kiro steering file whose source command no longer exists
+- Skips files that haven't changed (content diff before writing)
+
+> **Note:** The `inclusion: manual` setting means the steering file is only applied when you explicitly reference it in Kiro — it won't be injected into every conversation automatically.
+
+---
+
 ## Troubleshooting
 
 **`git push` fails with "non-fast-forward"**
