@@ -1,4 +1,4 @@
-# Claude Code Dotfiles — Sync Your AI Dev Setup Across Every Machine
+# Claude Code Dotfiles — Auto-Sync Your Config Across Machines
 
 ![Claude Code](https://img.shields.io/badge/Claude_Code-5C4EE5?logo=anthropic&logoColor=white)
 ![Shell](https://img.shields.io/badge/Shell-zsh%20%7C%20bash-89E051?logo=gnubash&logoColor=white)
@@ -9,7 +9,7 @@
 
 ---
 
-## What Is This?
+## What This Does
 
 A **dotfiles setup for Claude Code** — version your `~/.claude` directory in Git so your AI coding environment follows you everywhere.
 
